@@ -17,4 +17,6 @@ COPY . /app/
 
 RUN mkdir -p /app/media /app/staticfiles
 
+RUN python manage.py collectstatic --noinput
+
 CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:10000"]
