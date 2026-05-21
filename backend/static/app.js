@@ -43,7 +43,7 @@
     mounted() {
       this.reloadCaptcha();
       this.loadComments();
-      this.connectWs();
+      // this.connectWs();
     },
     beforeUnmount() {
       if (this.ws) {
@@ -268,18 +268,8 @@
         this.lightbox.open = false;
       },
       connectWs() {
-        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-        this.ws = new WebSocket(`${protocol}://${window.location.host}/ws/comments/`);
-
-        this.ws.onmessage = () => {
-          this.loadComments(this.pagination.page);
-        };
-
-        this.ws.onclose = () => {
-          setTimeout(() => this.connectWs(), 1500);
-        };
+        return;
       },
     },
   }).mount("#app");
 })();
-

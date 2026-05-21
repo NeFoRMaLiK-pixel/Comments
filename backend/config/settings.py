@@ -124,13 +124,11 @@ REST_FRAMEWORK = {
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/1")
 
-#CACHES = {
-#    "default": {
-#        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-#        "LOCATION": REDIS_URL,
-#        "TIMEOUT": 300,
-#    }
-#}
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    }
+}
 
 #CHANNEL_LAYERS = {
 #    "default": {
