@@ -43,7 +43,7 @@
     mounted() {
       this.reloadCaptcha();
       this.loadComments();
-      // this.connectWs();
+      this.connectWs();
     },
     beforeUnmount() {
       if (this.ws) {
