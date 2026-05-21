@@ -67,7 +67,7 @@ ASGI_APPLICATION = "config.asgi.application"
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///db.sqlite3")
 
-if DATABASE_URL.startswith("postgresql://"):
+if DATABASE_URL.startswith(("postgresql://", "postgres://")):
     parsed = urlparse(DATABASE_URL)
     DATABASES = {
         "default": {
