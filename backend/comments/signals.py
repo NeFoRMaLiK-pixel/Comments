@@ -9,5 +9,5 @@ def on_comment_created(sender, instance: Comment, created: bool, **kwargs):
 
     from .tasks import process_comment_created_event
 
-    process_comment_created_event.delay(instance.id)
+    #process_comment_created_event.delay(instance.id)
 
