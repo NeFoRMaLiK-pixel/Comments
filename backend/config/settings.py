@@ -122,7 +122,10 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 25,
 }
 
-REDIS_URL = os.getenv("REDIS_URL")
+REDIS_URL = os.getenv(
+    "REDIS_URL",
+    "redis://red-d87i7t8g4nts73dv6g60:6379"
+)
 
 if REDIS_URL:
     CACHES = {
@@ -156,7 +159,7 @@ else:
             "BACKEND": "channels.layers.InMemoryChannelLayer",
         },
     }
-
+    
 CAPTCHA_TTL_SECONDS = 300
 CAPTCHA_LENGTH = 6
 ALLOWED_COMMENT_TAGS = ["a", "code", "i", "strong"]

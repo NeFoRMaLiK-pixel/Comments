@@ -4,7 +4,6 @@ import os
 
 from .models import Comment
 
-
 @receiver(post_save, sender=Comment)
 def on_comment_created(sender, instance: Comment, created: bool, **kwargs):
     if not created:

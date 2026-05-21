@@ -13,3 +13,4 @@ psycopg[binary]==3.2.6
 whitenoise==6.9.0
 daphne==4.1.2
 gunicorn
+uvicorn
