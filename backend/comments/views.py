@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 from .captcha import create_captcha
 from .models import Comment
 from .serializers import CommentCreateSerializer, CommentTreeSerializer, PreviewSerializer
-from .services import cache_key, safe_cache_get, safe_cache_set
+from .services import cache_key, current_comment_cache_version, safe_cache_get, safe_cache_set
 
 
 class CommentListCreateView(ListCreateAPIView):
@@ -35,7 +35,8 @@ class CommentListCreateView(ListCreateAPIView):
 
         page = request.query_params.get("page", "1")
         force_fresh = request.query_params.get("fresh") == "1"
-        key = cache_key(ordering, page)
+        version = current_comment_cache_version()
+        key = cache_key(ordering, page, version)
 
         if not force_fresh:
             cached = safe_cache_get(key)

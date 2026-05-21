@@ -10,7 +10,8 @@ from PIL import Image
 
 from .validators import validate_comment_xhtml
 
-TOP_LEVEL_CACHE_KEY = "comments:top_level:{ordering}:{page}"
+TOP_LEVEL_CACHE_KEY = "comments:top_level:v{version}:{ordering}:{page}"
+TOP_LEVEL_CACHE_VERSION_KEY = "comments:top_level:version"
 
 logger = logging.getLogger(__name__)
 
@@ -88,12 +89,22 @@ def safe_cache_delete(key) -> None:
         logger.exception("Cache delete failed for key=%s", key)
 
 
+def current_comment_cache_version() -> int:
+    version = safe_cache_get(TOP_LEVEL_CACHE_VERSION_KEY, 1)
+    try:
+        return int(version)
+    except (TypeError, ValueError):
+        return 1
+
+
 def invalidate_comment_cache() -> None:
     try:
-        cache.clear()
+        if cache.add(TOP_LEVEL_CACHE_VERSION_KEY, 2):
+            return
+        cache.incr(TOP_LEVEL_CACHE_VERSION_KEY)
     except Exception:
-        logger.exception("Cache clear failed.")
+        logger.exception("Failed to bump comments cache version.")
 
 
-def cache_key(ordering: str, page: int | str) -> str:
-    return TOP_LEVEL_CACHE_KEY.format(ordering=ordering, page=page)
+def cache_key(ordering: str, page: int | str, version: int) -> str:
+    return TOP_LEVEL_CACHE_KEY.format(version=version, ordering=ordering, page=page)
