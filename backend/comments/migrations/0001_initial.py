@@ -1,4 +1,4 @@
-﻿# Generated manually for the test task.
+﻿
 
 from django.db import migrations, models
 import django.db.models.deletion
