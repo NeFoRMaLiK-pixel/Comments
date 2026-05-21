@@ -6,4 +6,4 @@ class CommentsConfig(AppConfig):
     name = "comments"
 
     def ready(self) -> None:
-        import comments.signals  
+        import comments.signals

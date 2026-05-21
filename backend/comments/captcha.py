@@ -4,8 +4,9 @@ import secrets
 import string
 
 from django.conf import settings
-from django.core.cache import cache
 from PIL import Image, ImageDraw, ImageFont
+
+from .services import safe_cache_delete, safe_cache_get, safe_cache_set
 
 CAPTCHA_PREFIX = "captcha:"
 
@@ -38,7 +39,7 @@ def _build_image(value: str) -> str:
 def create_captcha() -> dict:
     key = _captcha_key()
     value = _captcha_value()
-    cache.set(f"{CAPTCHA_PREFIX}{key}", value.lower(), timeout=settings.CAPTCHA_TTL_SECONDS)
+    safe_cache_set(f"{CAPTCHA_PREFIX}{key}", value.lower(), timeout=settings.CAPTCHA_TTL_SECONDS)
 
     return {
         "key": key,
@@ -48,10 +49,11 @@ def create_captcha() -> dict:
 
 
 def verify_captcha(key: str, value: str) -> bool:
-    stored = cache.get(f"{CAPTCHA_PREFIX}{key}")
+    stored = safe_cache_get(f"{CAPTCHA_PREFIX}{key}")
     if not stored:
         return False
+
     ok = stored == (value or "").lower().strip()
     if ok:
-        cache.delete(f"{CAPTCHA_PREFIX}{key}")
+        safe_cache_delete(f"{CAPTCHA_PREFIX}{key}")
     return ok

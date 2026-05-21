@@ -61,7 +61,7 @@
       orderingValue() {
         return this.sort.direction === "desc" ? `-${this.sort.field}` : this.sort.field;
       },
-      async loadComments(page = 1) {
+      async loadComments(page = 1, fresh = false) {
         this.loading.list = true;
         this.errors.form = "";
 
@@ -70,6 +70,10 @@
             ordering: this.orderingValue(),
             page: String(page),
           });
+
+          if (fresh) {
+            params.set("fresh", "1");
+          }
           const response = await fetch(`/api/comments/?${params.toString()}`, {
             credentials: "same-origin",
           });
@@ -219,7 +223,7 @@
           }
 
           await this.reloadCaptcha();
-          await this.loadComments(this.pagination.page);
+          await this.loadComments(this.pagination.page, true);
         } catch (error) {
           this.errors.form = error.message;
           await this.reloadCaptcha();
@@ -268,17 +272,20 @@
         this.lightbox.open = false;
       },
       connectWs() {
-          const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-          this.ws = new WebSocket(`${protocol}://${window.location.host}/ws/comments/`);
+        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+        this.ws = new WebSocket(`${protocol}://${window.location.host}/ws/comments/`);
 
-          this.ws.onmessage = () => {
-            this.loadComments(this.pagination.page);
-          };
+        this.ws.onmessage = async () => {
+          await this.loadComments(this.pagination.page, true);
+        };
 
-          this.ws.onclose = () => {
-            setTimeout(() => this.connectWs(), 1500);
-          };
+        this.ws.onclose = () => {
+          setTimeout(() => this.connectWs(), 1500);
+        };
       },
     },
   }).mount("#app");
 })();
+
+
+

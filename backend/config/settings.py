@@ -1,4 +1,5 @@
-﻿import os
+﻿import importlib.util
+import os
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -17,7 +18,6 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 INSTALLED_APPS = [
-    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -29,8 +29,11 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "django_filters",
     "channels",
-    "comments",
+    "comments.apps.CommentsConfig",
 ]
+
+if importlib.util.find_spec("daphne"):
+    INSTALLED_APPS.insert(0, "daphne")
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -122,16 +125,19 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 25,
 }
 
-REDIS_URL = os.getenv(
-    "REDIS_URL",
-    "redis://red-d87i7t8g4nts73dv6g60:6379"
-)
+REDIS_URL = os.getenv("REDIS_URL", "").strip()
+USE_REDIS = bool(REDIS_URL)
 
-if REDIS_URL:
+if USE_REDIS:
     CACHES = {
         "default": {
             "BACKEND": "django.core.cache.backends.redis.RedisCache",
             "LOCATION": REDIS_URL,
+            "OPTIONS": {
+                "socket_connect_timeout": 1,
+                "socket_timeout": 1,
+                "retry_on_timeout": True,
+            },
         }
     }
 
@@ -144,9 +150,8 @@ if REDIS_URL:
         },
     }
 
-    CELERY_BROKER_URL = REDIS_URL
-    CELERY_RESULT_BACKEND = REDIS_URL
-
+    CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", REDIS_URL)
+    CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", REDIS_URL)
 else:
     CACHES = {
         "default": {
@@ -159,7 +164,14 @@ else:
             "BACKEND": "channels.layers.InMemoryChannelLayer",
         },
     }
-    
+
+    CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "memory://")
+    CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "cache+memory://")
+
+default_celery_eager = "0" if USE_REDIS else "1"
+CELERY_TASK_ALWAYS_EAGER = os.getenv("CELERY_TASK_ALWAYS_EAGER", default_celery_eager) == "1"
+CELERY_TASK_EAGER_PROPAGATES = os.getenv("CELERY_TASK_EAGER_PROPAGATES", "1") == "1"
+
 CAPTCHA_TTL_SECONDS = 300
 CAPTCHA_LENGTH = 6
 ALLOWED_COMMENT_TAGS = ["a", "code", "i", "strong"]

@@ -1,4 +1,5 @@
 ﻿import io
+import logging
 from pathlib import Path
 
 import bleach
@@ -10,6 +11,8 @@ from PIL import Image
 from .validators import validate_comment_xhtml
 
 TOP_LEVEL_CACHE_KEY = "comments:top_level:{ordering}:{page}"
+
+logger = logging.getLogger(__name__)
 
 
 def sanitize_comment_html(text: str) -> str:
@@ -63,8 +66,33 @@ def get_client_ip(request) -> str:
     return request.META.get("REMOTE_ADDR", "")
 
 
+def safe_cache_get(key, default=None):
+    try:
+        return cache.get(key, default)
+    except Exception:
+        logger.exception("Cache get failed for key=%s", key)
+        return default
+
+
+def safe_cache_set(key, value, timeout=None) -> None:
+    try:
+        cache.set(key, value, timeout=timeout)
+    except Exception:
+        logger.exception("Cache set failed for key=%s", key)
+
+
+def safe_cache_delete(key) -> None:
+    try:
+        cache.delete(key)
+    except Exception:
+        logger.exception("Cache delete failed for key=%s", key)
+
+
 def invalidate_comment_cache() -> None:
-    cache.clear()
+    try:
+        cache.clear()
+    except Exception:
+        logger.exception("Cache clear failed.")
 
 
 def cache_key(ordering: str, page: int | str) -> str:
