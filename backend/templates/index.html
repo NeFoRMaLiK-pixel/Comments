@@ -1,0 +1,174 @@
+﻿{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Comments SPA</title>
+  <link rel="stylesheet" href="{% static 'app.css' %}">
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="{% static 'app.js' %}" defer></script>
+</head>
+<body>
+  {% verbatim %}
+  <main id="app" class="page">
+    <section class="panel hero">
+      <h1>Comments SPA</h1>
+      <p>Nested comments, validation, CAPTCHA, attachments, AJAX preview, JWT-ready API and WebSocket updates.</p>
+    </section>
+
+    <section class="panel form-panel">
+      <h2>Add Comment</h2>
+
+      <div v-if="form.parent" class="reply-badge">
+        Replying to comment #{{ form.parent }}
+        <button type="button" @click="cancelReply">Cancel</button>
+      </div>
+
+      <form @submit.prevent="submitComment" class="comment-form">
+        <div class="row">
+          <label>
+            User Name*
+            <input v-model.trim="form.username" maxlength="64" pattern="[A-Za-z0-9]+" required>
+          </label>
+          <label>
+            E-mail*
+            <input v-model.trim="form.email" type="email" required>
+          </label>
+        </div>
+
+        <label>
+          Home page
+          <input v-model.trim="form.homepage" type="url" placeholder="https://example.com">
+        </label>
+
+        <label>
+          Attachment (JPG/GIF/PNG/TXT)
+          <input ref="fileInput" type="file" @change="onFileChange" accept=".jpg,.jpeg,.gif,.png,.txt">
+        </label>
+
+        <div class="toolbar">
+          <button type="button" @click="insertTag('i')">[i]</button>
+          <button type="button" @click="insertTag('strong')">[strong]</button>
+          <button type="button" @click="insertTag('code')">[code]</button>
+          <button type="button" @click="insertLink">[a]</button>
+          <button type="button" @click="previewComment">Preview</button>
+        </div>
+
+        <label>
+          Text*
+          <textarea ref="textArea" v-model="form.text" rows="6" required></textarea>
+        </label>
+
+        <div class="captcha-wrap">
+          <img :src="captcha.image" alt="captcha" class="captcha-image">
+          <button type="button" @click="reloadCaptcha">Refresh</button>
+          <label>
+            CAPTCHA*
+            <input v-model.trim="form.captchaValue" required pattern="[A-Za-z0-9]+">
+          </label>
+        </div>
+
+        <button class="submit" type="submit" :disabled="loading.submit">{{ loading.submit ? 'Sending...' : 'Send comment' }}</button>
+      </form>
+
+      <p class="error" v-if="errors.form">{{ errors.form }}</p>
+
+      <div class="preview" v-if="previewHtml">
+        <h3>Preview</h3>
+        <div class="preview-body" v-html="previewHtml"></div>
+      </div>
+    </section>
+
+    <section class="panel list-panel">
+      <header class="list-header">
+        <h2>Comments</h2>
+        <div class="sort-controls">
+          <label>
+            Sort field
+            <select v-model="sort.field" @change="changeSort">
+              <option value="created_at">Date</option>
+              <option value="username">User Name</option>
+              <option value="email">E-mail</option>
+            </select>
+          </label>
+          <label>
+            Direction
+            <select v-model="sort.direction" @change="changeSort">
+              <option value="desc">DESC (LIFO)</option>
+              <option value="asc">ASC</option>
+            </select>
+          </label>
+        </div>
+      </header>
+
+      <div class="table-head">
+        <span>User</span>
+        <span>E-mail</span>
+        <span>Date</span>
+      </div>
+
+      <div v-if="loading.list" class="state">Loading comments...</div>
+      <div v-else-if="comments.length === 0" class="state">No comments yet.</div>
+
+      <div class="comment-list">
+        <comment-node
+          v-for="comment in comments"
+          :key="comment.id"
+          :comment="comment"
+          :depth="0"
+          @reply="setReply"
+          @open-attachment="openAttachment"
+        ></comment-node>
+      </div>
+
+      <footer class="pager">
+        <button @click="goPrev" :disabled="!pagination.previous">Previous</button>
+        <span>Page {{ pagination.page }}</span>
+        <button @click="goNext" :disabled="!pagination.next">Next</button>
+      </footer>
+    </section>
+
+    <transition name="fade">
+      <div v-if="lightbox.open" class="lightbox" @click.self="closeLightbox">
+        <div class="lightbox-inner">
+          <button class="close" @click="closeLightbox">×</button>
+          <img v-if="lightbox.type === 'image'" :src="lightbox.content" alt="attachment">
+          <pre v-else class="text-preview">{{ lightbox.content }}</pre>
+        </div>
+      </div>
+    </transition>
+  </main>
+
+  <script type="text/x-template" id="comment-node-template">
+    <article class="comment" :style="{ '--depth': depth }">
+      <header class="comment-head">
+        <strong>{{ comment.username }}</strong>
+        <a :href="'mailto:' + comment.email">{{ comment.email }}</a>
+        <time>{{ formatDate(comment.created_at) }}</time>
+        <button @click="$emit('reply', comment)">Reply</button>
+      </header>
+
+      <div class="comment-text" v-html="comment.text_html"></div>
+
+      <div class="attachment" v-if="comment.attachment_type !== 'none'">
+        <button @click="$emit('open-attachment', comment)">
+          Open {{ comment.attachment_type }}: {{ comment.attachment_name || 'attachment' }}
+        </button>
+      </div>
+
+      <div class="children" v-if="comment.children && comment.children.length">
+        <comment-node
+          v-for="child in comment.children"
+          :key="child.id"
+          :comment="child"
+          :depth="depth + 1"
+          @reply="$emit('reply', $event)"
+          @open-attachment="$emit('open-attachment', $event)"
+        ></comment-node>
+      </div>
+    </article>
+  </script>
+  {% endverbatim %}
+</body>
+</html>
